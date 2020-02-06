@@ -1,0 +1,100 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+	int main(){
+	unsigned char header[54];
+	unsigned char *pxldata;
+	long int width, height;
+	int x,y;
+	printf("Enter the Coordinates\n");  //reading input coordinates
+	scanf("%d %d",&x,&y);
+	unsigned char bpp, offset;
+	FILE *fp;
+	fp= fopen("c:\\final.bmp","rb");  //opening image file
+	if(fp==NULL)
+	{
+	printf("FAILED TO OPEN FILE\n");
+	exit(1);
+	}
+	//printf(" Image Load SUCCESS\n");
+	fread(header, sizeof(unsigned char),54,fp); //reading bitmap header
+
+	if(header[0]!='B'&&header[1]!='M'){   //Checking for valid bitmap. Must be 'BM'.
+		printf("ERROR! Load a bitmap image");
+		return 0;
+	}
+	else {
+		printf("BITMAP Image Loaded Successfully\n");
+	}
+	width = *(int*)&header[18];
+	height= *(int*)&header[22];
+	bpp= *(int*) &header[28];
+	offset=*(int*) &header[10];
+
+	printf("%ld %ld %u %u \n",width, height,bpp,offset);
+	if((x>width)||(y>height)){
+		printf("Input Coordinate is Invalid or Out of Bound");
+	}
+	int pad=3; //for 24 bit
+	if(bpp==1)
+		pad=1; //for monochrome
+	int padding=0;
+	while((width * pad + padding)% 4!=0)
+	{
+		padding++;     //calculating padding bits as
+		//bytes are in multiples of 4 in bmp
+
+	}
+	//printf("%d\n",padding);
+
+	int newwidth=width*pad+padding; //new width with padded bits
+
+	//to store the pixel data
+	pxldata=(unsigned char*)malloc(newwidth*height*pad*sizeof(unsigned char));
+
+
+	if(pxldata==NULL)
+		printf("Memory allocation FAIL");
+
+	int i;
+	fseek(fp,offset,SEEK_SET);
+	//printf("\n<%ld >\n", ftell(fp));
+	// long int count=1, rawptr=0;
+	 unsigned char *rawdata;
+	rawdata=(unsigned char*)malloc(newwidth*sizeof(unsigned char));
+	//long int count1=0;
+	 for(i=0;i<height;i++)
+	 	{ //removing padded data by comparing new widthb with padded data
+	 	fread(rawdata,sizeof(unsigned char),newwidth,fp);
+	 		for(int j=0;j<width*pad;j+=pad)
+	 			{
+	 				int temp=(i*width*pad)+j;
+	 				pxldata[temp+0]=rawdata[j+2];
+	 				pxldata[temp+1]=rawdata[j+1];
+	 				pxldata[temp+2]=rawdata[j+0];
+	 				printf("%d %d %d ",pxldata[temp+0],pxldata[temp+1],pxldata[temp+2]);
+		//printf("<%ld>",count1++);
+	}
+	}
+
+	//finding pixel from coordinates
+	int long row=1;
+	int data[2];
+	for(i=0;i<width*height;i+=width){
+		if(row==y){				//mapping (x,y) coordinates to width and height
+			data[0]=pxldata[i+x];
+			data[1]=pxldata[i+x+1];
+			data[2]=pxldata[i+x+2];
+			break; }
+		else
+			row++;
+	}
+
+	printf("R=%d G=%d B=%d ", data[2],data[1],data[0]);
+
+	free(pxldata);
+	free(rawdata);
+
+	fclose(fp);
+	return 0;
+	}
